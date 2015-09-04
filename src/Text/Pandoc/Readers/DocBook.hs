@@ -13,7 +13,7 @@ import Data.Char (isSpace)
 import Control.Monad.State
 import Control.Applicative ((<$>))
 import Data.List (intersperse)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, listToMaybe)
 import Text.TeXMath (readMathML, writeTeX)
 import Text.Pandoc.Error (PandocError)
 import Text.Pandoc.Compat.Except
@@ -772,6 +772,7 @@ parseBlock (Elem e) =
         "literallayout" -> codeBlockWithLang
         "screen" -> codeBlockWithLang
         "programlisting" -> codeBlockWithLang
+        "indexterm" -> indexTerm
         "?xml"  -> return mempty
         _       -> getBlocks e
    where parseMixed container conts = do
@@ -790,6 +791,12 @@ parseBlock (Elem e) =
                                 x    -> [x]
            return $ codeBlockWith (attrValue "id" e, classes', [])
                   $ trimNl $ strContentRecursive e
+         indexTerm = do
+           let primary:_ = map elContent $ filterChildren (named "primary") e
+               secondary = fmap elContent $ listToMaybe $ filterChildren (named "secondary") e
+               getText (Text (CData {cdData=d})) = d
+               getText _ = []
+           return $ singleton $ IndexTerm (concatMap getText primary) (concatMap getText <$> secondary)
          parseBlockquote = do
             attrib <- case filterChild (named "attribution") e of
                              Nothing  -> return mempty

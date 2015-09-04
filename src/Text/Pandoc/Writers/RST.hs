@@ -287,6 +287,11 @@ blockToRST (OrderedList (start, style', delim) items) = do
               zip markers' items
   -- ensure that sublists have preceding blank line
   return $ blankline $$ chomp (vcat contents) $$ blankline
+blockToRST (IndexTerm primary secondary) = do
+  return $ blankline
+        $$ text ".. index ::"
+        $$ text "   single:" <+> text primary <> (maybe mempty (\s->char ';'<+>text s) secondary)
+        $$ blankline
 blockToRST (DefinitionList items) = do
   contents <- mapM definitionListItemToRST items
   -- ensure that sublists have preceding blank line
