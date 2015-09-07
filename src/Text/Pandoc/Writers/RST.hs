@@ -203,17 +203,19 @@ blockToRST HorizontalRule =
 blockToRST (Header level (name,classes,_) inlines) = do
   contents <- inlineListToRST inlines
   isTopLevel <- gets stTopLevel
-  let name' | null name    = empty
-            | otherwise    = "_" <> text name <> ":"
   if isTopLevel
     then do
-          let headerChar = if level > 5 then ' ' else "=-~^'" !! (level - 1)
+          let headerChar = if level > 5 then ' ' else "=-~^'" !! level
           let border = text $ replicate (offset contents) headerChar
-          return $ nowrap $ hang 3 ".. " name' $$ blankline $$ contents $$ border $$ blankline
+          let nameThing | null name  = empty
+                        | otherwise  = ".. _" <> text name <> ":" $$ blankline
+          return $ nowrap $ nameThing $$ contents $$ border $$ blankline
     else do
           let rub     = "rubric:: " <> contents
           let cls   | null classes = empty
                     | otherwise    = ":class: " <> text (unwords classes)
+          let name' | null name    = empty
+                    | otherwise    = "_" <> text name <> ":"
           return $ nowrap $ hang 3 ".. " (rub $$ name' $$ cls) $$ blankline
 blockToRST (CodeBlock (_,classes,kvs) str) = do
   opts <- stOptions <$> get

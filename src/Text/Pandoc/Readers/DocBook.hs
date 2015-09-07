@@ -899,10 +899,10 @@ parseBlock (Elem e) =
                                             filterChild (named "title")) of
                                       Just t -> getInlines t
                                       Nothing -> return mempty
-                     modify $ \st -> st{ dbSectionLevel = n }
+                     modify $ \st -> st{ dbSectionLevel = n' }
                      b <- getBlocks e
                      let ident = attrValue "id" e
-                     modify $ \st -> st{ dbSectionLevel = n - 1 }
+                     modify $ \st -> st{ dbSectionLevel = n' - 1 }
                      return $ headerWith (ident,[],[]) n' headerText <> b
          metaBlock = acceptingMetadata (getBlocks e) >> return mempty
 
