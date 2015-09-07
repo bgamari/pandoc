@@ -288,9 +288,11 @@ blockToRST (OrderedList (start, style', delim) items) = do
   -- ensure that sublists have preceding blank line
   return $ blankline $$ chomp (vcat contents) $$ blankline
 blockToRST (IndexTerm primary secondary) = do
+  primary' <- traverse inlineToRST primary
+  secondary' <- traverse (traverse inlineToRST) secondary
   return $ blankline
         $$ text ".. index ::"
-        $$ text "   single:" <+> text primary <> (maybe mempty (\s->char ';'<+>text s) secondary)
+        $$ text "   single:" <+> mconcat primary' <> (maybe mempty (\s->char ';'<+>mconcat s) secondary')
         $$ blankline
 blockToRST (DefinitionList items) = do
   contents <- mapM definitionListItemToRST items
@@ -439,6 +441,8 @@ inlineToRST (RawInline f x)
 inlineToRST (LineBreak) = return cr -- there's no line break in RST (see Para)
 inlineToRST Space = return space
 -- autolink
+inlineToRST (Link txt (src, tit))
+  | "ref:" `isPrefixOf` src = return $ text $ ":ref:`"<>drop 4 src<>"`"
 inlineToRST (Link [Str str] (src, _))
   | isURI src &&
     if "mailto:" `isPrefixOf` src

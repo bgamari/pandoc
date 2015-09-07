@@ -1,4 +1,6 @@
 module Text.Pandoc.Readers.DocBook ( readDocBook ) where
+import Debug.Trace
+import Data.Foldable (fold)
 import Data.Char (toUpper)
 import Text.Pandoc.Shared (safeRead)
 import Text.Pandoc.Options
@@ -655,8 +657,8 @@ getBlocks e =  mconcat <$> (mapM parseBlock $ elContent e)
 
 getInlinesAndIndexTerms :: Element -> DB (Inlines, Blocks)
 getInlinesAndIndexTerms e = do
-    indexTerms <- traverse getBlocks $ filterChildren (named "indexterm") e
-    others <- traverse getInlines $ filterChildren (not . named "indexterm") e
+    indexTerms <- traverse (parseBlock . Elem) $ filterChildren (named "indexterm") e
+    others <- traverse (parseInline . Elem) $ filterChildren (not . named "indexterm") e
     return (mconcat others, mconcat indexTerms)
 
 parseBlock :: Content -> DB Blocks
@@ -798,9 +800,9 @@ parseBlock (Elem e) =
                   $ reverse $ dropWhile isSpace $ reverse
                   $ trimNl $ strContentRecursive e
          indexTerm = do
-           let primary:_ = map strContentRecursive $ filterChildren (named "primary") e
-               secondary = fmap strContentRecursive $ listToMaybe $ filterChildren (named "secondary") e
-           return $ singleton $ IndexTerm (primary) (secondary)
+           primary:_ <-  mapM getInlines $ filterChildren (named "primary") e
+           secondary <- traverse getInlines $ listToMaybe $ filterChildren (named "secondary") e
+           return $ singleton $ IndexTerm (toList primary) (fmap toList secondary)
          parseBlockquote = do
             attrib <- case filterChild (named "attribution") e of
                              Nothing  -> return mempty
@@ -964,8 +966,8 @@ parseInline (Elem e) =
                                         filter isGuiMenu $ elContent e)
         "xref" ->
              case findAttr (QName "linkend" Nothing Nothing) e of
-                  Just h  -> return $ link ("ref:"++h) "" []
-                  Nothing -> return $ str "?"
+                  Just h  -> return $ link ("ref:"++h) "" mempty
+                  Nothing -> return $ str "UNKNOWN_XREF"
         "email" -> return $ link ("mailto:" ++ strContent e) ""
                           $ str $ strContent e
         "uri" -> return $ link (strContent e) "" $ str $ strContent e
