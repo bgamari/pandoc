@@ -653,6 +653,11 @@ getMediaobject e = do
 getBlocks :: Element -> DB Blocks
 getBlocks e =  mconcat <$> (mapM parseBlock $ elContent e)
 
+getInlinesAndIndexTerms :: Element -> DB (Inlines, Blocks)
+getInlinesAndIndexTerms e = do
+    indexTerms <- traverse getBlocks $ filterChildren (named "indexterm") e
+    others <- traverse getInlines $ filterChildren (not . named "indexterm") e
+    return (mconcat others, mconcat indexTerms)
 
 parseBlock :: Content -> DB Blocks
 parseBlock (Text (CData CDataRaw _ _)) = return mempty -- DOCTYPE
@@ -790,13 +795,12 @@ parseBlock (Elem e) =
                                 ""   -> []
                                 x    -> [x]
            return $ codeBlockWith (attrValue "id" e, classes', [])
+                  $ reverse $ dropWhile isSpace $ reverse
                   $ trimNl $ strContentRecursive e
          indexTerm = do
-           let primary:_ = map elContent $ filterChildren (named "primary") e
-               secondary = fmap elContent $ listToMaybe $ filterChildren (named "secondary") e
-               getText (Text (CData {cdData=d})) = d
-               getText _ = []
-           return $ singleton $ IndexTerm (concatMap getText primary) (concatMap getText <$> secondary)
+           let primary:_ = map strContentRecursive $ filterChildren (named "primary") e
+               secondary = fmap strContentRecursive $ listToMaybe $ filterChildren (named "secondary") e
+           return $ singleton $ IndexTerm (primary) (secondary)
          parseBlockquote = do
             attrib <- case filterChild (named "attribution") e of
                              Nothing  -> return mempty
@@ -811,9 +815,10 @@ parseBlock (Elem e) =
          parseVarListEntry e' = do
                      let terms = filterChildren (named "term") e'
                      let items = filterChildren (named "listitem") e'
-                     terms' <- mapM getInlines terms
+                     things <- mapM getInlinesAndIndexTerms terms
+                     let (terms', indexTerms) = unzip things
                      items' <- mapM getBlocks items
-                     return (mconcat $ intersperse (str "; ") terms', items')
+                     return (mconcat $ intersperse (str "; ") terms', indexTerms<>items')
          parseGlossEntry e' = do
                      let terms = filterChildren (named "glossterm") e'
                      let items = filterChildren (named "glossdef") e'
@@ -936,7 +941,7 @@ parseInline (Elem e) =
         "classname" -> codeWithLang
         "code" -> codeWithLang
         "filename" -> codeWithLang
-        "literal" -> codeWithLang
+        "literal" -> codeWithLangNoSpace
         "computeroutput" -> codeWithLang
         "prompt" -> codeWithLang
         "parameter" -> codeWithLang
@@ -992,11 +997,21 @@ parseInline (Elem e) =
            $ filterChildren (\x -> qName (elName x) == "math" &&
                                    qPrefix (elName x) == Just "mml") e
          removePrefix elname = elname { qPrefix = Nothing }
+         codeWithLangNoSpace = do
+           let classes' = case attrValue "language" e of
+                               "" -> []
+                               l  -> [l]
+           return $ trimInlines $ codeWith (attrValue "id" e,classes',[])
+                  $ reverse $ dropWhile isSpace $ reverse $ unwords $ words
+                  $ strContentRecursive e
+
          codeWithLang = do
            let classes' = case attrValue "language" e of
                                "" -> []
                                l  -> [l]
-           return $ codeWith (attrValue "id" e,classes',[]) $ strContentRecursive e
+           return $ trimInlines $ codeWith (attrValue "id" e,classes',[])
+                  $ reverse $ dropWhile isSpace $ reverse
+                  $ strContentRecursive e
          simpleList = (mconcat . intersperse (str "," <> space)) <$> mapM getInlines
                          (filterChildren (named "member") e)
          segmentedList = do
