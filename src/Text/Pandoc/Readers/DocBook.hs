@@ -954,6 +954,7 @@ parseInline (Elem e) =
                          return $ str "[" <> x <> str "]"
         "markup" -> codeWithLang
         "wordasword" -> emph <$> innerInlines
+        "envar"   -> codeWithLang
         "command" -> codeWithLang
         "varname" -> codeWithLang
         "function" -> codeWithLang
