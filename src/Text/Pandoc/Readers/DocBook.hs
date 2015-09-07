@@ -941,7 +941,7 @@ parseInline (Elem e) =
         "simplelist" -> simpleList
         "segmentedlist" -> segmentedList
         "replaceable" -> do x <- getInlines e
-                            return $ str "⟨" <> e <> str "⟩"
+                            return $ str "⟨" <> x <> str "⟩"
         "classname" -> codeWithLang
         "code" -> codeWithLang
         "filename" -> codeWithLang
