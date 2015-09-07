@@ -962,7 +962,10 @@ parseInline (Elem e) =
         "keycombo" -> keycombo <$> (mapM parseInline $ elContent e)
         "menuchoice" -> menuchoice <$> (mapM parseInline $
                                         filter isGuiMenu $ elContent e)
-        "xref" -> return $ str "?" -- so at least you know something is there
+        "xref" ->
+             case findAttr (QName "linkend" Nothing Nothing) e of
+                  Just h  -> return $ link ("ref:"++h) "" []
+                  Nothing -> return $ str "?"
         "email" -> return $ link ("mailto:" ++ strContent e) ""
                           $ str $ strContent e
         "uri" -> return $ link (strContent e) "" $ str $ strContent e
