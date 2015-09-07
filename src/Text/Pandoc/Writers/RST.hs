@@ -205,7 +205,7 @@ blockToRST (Header level (name,classes,_) inlines) = do
   isTopLevel <- gets stTopLevel
   if isTopLevel
     then do
-          let headerChar = if level > 5 then ' ' else "=-~^'" !! level
+          let headerChar = if level > 5 then ' ' else "=-~^'" !! (level - 1)
           let border = text $ replicate (offset contents) headerChar
           let nameThing | null name  = empty
                         | otherwise  = ".. _" <> text name <> ":" $$ blankline

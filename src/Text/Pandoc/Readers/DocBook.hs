@@ -690,32 +690,32 @@ parseBlock (Elem e) =
         "authorgroup" -> checkInMeta getAuthorGroup
         "releaseinfo" -> checkInMeta (getInlines e >>= addMeta "release")
         "date" -> checkInMeta getDate
-        "bibliography" -> sect 0
-        "bibliodiv" -> sect 1
+        "bibliography" -> sect 1
+        "bibliodiv" -> sect 2
         "biblioentry" -> parseMixed para (elContent e)
         "bibliomixed" -> parseMixed para (elContent e)
         "glosssee" -> para . (\ils -> text "See " <> ils <> str ".")
                          <$> getInlines e
         "glossseealso" -> para . (\ils -> text "See also " <> ils <> str ".")
                          <$> getInlines e
-        "glossary" -> sect 0
+        "glossary" -> sect 1
         "glossdiv" -> definitionList <$>
                   mapM parseGlossEntry (filterChildren (named "glossentry") e)
         "glosslist" -> definitionList <$>
                   mapM parseGlossEntry (filterChildren (named "glossentry") e)
-        "chapter" -> sect 0
-        "appendix" -> sect 0
-        "preface" -> sect 0
+        "chapter" -> sect 1
+        "appendix" -> sect 1
+        "preface" -> sect 1
         "bridgehead" -> para . strong <$> getInlines e
-        "sect1" -> sect 1
-        "sect2" -> sect 2
-        "sect3" -> sect 3
-        "sect4" -> sect 4
-        "sect5" -> sect 5
+        "sect1" -> sect 2
+        "sect2" -> sect 3
+        "sect3" -> sect 4
+        "sect4" -> sect 5
+        "sect5" -> sect 6
         "section" -> gets dbSectionLevel >>= sect . (+1)
-        "refsect1" -> sect 1
-        "refsect2" -> sect 2
-        "refsect3" -> sect 3
+        "refsect1" -> sect 2
+        "refsect2" -> sect 3
+        "refsect3" -> sect 4
         "refsection" -> gets dbSectionLevel >>= sect . (+1)
         "important" -> blockQuote . (para (strong $ str "Important") <>)
                         <$> getBlocks e
@@ -899,10 +899,10 @@ parseBlock (Elem e) =
                                             filterChild (named "title")) of
                                       Just t -> getInlines t
                                       Nothing -> return mempty
-                     modify $ \st -> st{ dbSectionLevel = n' }
+                     modify $ \st -> st{ dbSectionLevel = n }
                      b <- getBlocks e
                      let ident = attrValue "id" e
-                     modify $ \st -> st{ dbSectionLevel = n' - 1 }
+                     modify $ \st -> st{ dbSectionLevel = n - 1 }
                      return $ headerWith (ident,[],[]) n' headerText <> b
          metaBlock = acceptingMetadata (getBlocks e) >> return mempty
 
