@@ -14,7 +14,7 @@ import Data.Monoid
 import Data.Char (isSpace)
 import Control.Monad.State
 import Control.Applicative ((<$>))
-import Data.List (intersperse)
+import Data.List (intersperse, partition)
 import Data.Maybe (fromMaybe, listToMaybe)
 import Text.TeXMath (readMathML, writeTeX)
 import Text.Pandoc.Error (PandocError)
@@ -657,9 +657,13 @@ getBlocks e =  mconcat <$> (mapM parseBlock $ elContent e)
 
 getInlinesAndIndexTerms :: Element -> DB (Inlines, Blocks)
 getInlinesAndIndexTerms e = do
-    indexTerms <- traverse (parseBlock . Elem) $ filterChildren (named "indexterm") e
-    others <- traverse (parseInline . Elem) $ filterChildren (not . named "indexterm") e
-    return (mconcat others, mconcat indexTerms)
+    let (indexTerms, others) = partition isIndexTerm $ elContent e
+    indexTerms' <- traverse parseBlock indexTerms
+    others' <- traverse parseInline others
+    return (mconcat others', mconcat indexTerms')
+  where
+    isIndexTerm (Elem (Element {elName=QName {qName="indexterm"}})) = True
+    isIndexTerm _ = False
 
 parseBlock :: Content -> DB Blocks
 parseBlock (Text (CData CDataRaw _ _)) = return mempty -- DOCTYPE
