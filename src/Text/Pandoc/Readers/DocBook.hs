@@ -940,6 +940,8 @@ parseInline (Elem e) =
                         else doubleQuoted contents
         "simplelist" -> simpleList
         "segmentedlist" -> segmentedList
+        "replaceable" -> do x <- getInlines e
+                            return $ str "⟨" <> e <> str "⟩"
         "classname" -> codeWithLang
         "code" -> codeWithLang
         "filename" -> codeWithLang
